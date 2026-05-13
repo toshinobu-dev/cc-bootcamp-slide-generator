@@ -5,7 +5,7 @@ import subprocess
 import anthropic
 from dotenv import load_dotenv
 
-load_dotenv(os.path.expanduser("~/Desktop/.env"))
+load_dotenv(os.path.expanduser("~/Desktop/.env"), override=True)
 
 CLAUDE_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
