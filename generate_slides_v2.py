@@ -195,6 +195,35 @@ def main():
         json.dump(result, f, ensure_ascii=False, indent=2)
     print("結果を保存: " + out_path)
 
+    save_log(data, url)
+
+
+def save_log(data, url):
+    log_path = os.path.expanduser("~/Desktop/logs.json")
+    log_entry = {
+        "datetime": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "service_name": data.get("service_name", ""),
+        "target": data.get("target", ""),
+        "concept": data.get("concept", ""),
+        "slides_count": data.get("slides_count", ""),
+        "url": url
+    }
+
+    logs = []
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                logs = json.load(f)
+        except Exception:
+            logs = []
+
+    logs.append(log_entry)
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(logs, f, ensure_ascii=False, indent=2)
+
+    print("ログを保存: " + log_path + " （累計 " + str(len(logs)) + " 件）")
+
 
 if __name__ == '__main__':
     main()
