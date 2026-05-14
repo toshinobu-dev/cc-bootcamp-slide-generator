@@ -54,13 +54,25 @@ def generate_targets(base_data):
     client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
 
     prompt = (
-        "以下のサービスに対して、購買意欲が高まりやすいターゲット層を3つ考えてください。\n\n"
+        "あなたはセールスマーケターです。以下のサービス情報をもとに、"
+        "このブートキャンプに最も響くターゲット層を3パターン考えてください。\n\n"
+        "【サービス情報】\n"
         "サービス名：" + base_data["service_name"] + "\n"
-        "訴求軸：" + base_data.get("appeal", "") + "\n"
         "コンセプト：" + base_data.get("concept", "") + "\n"
-        "価格：" + base_data.get("price", "") + "円\n\n"
-        "それぞれ異なる属性・悩み・動機を持つターゲットにすること。\n"
-        "現在のターゲット「" + base_data.get("target", "") + "」も参考にしつつ、より具体的な3パターンを提案してください。"
+        "訴求軸：" + base_data.get("appeal", "") + "\n"
+        "定価：" + base_data.get("price", "") + "円\n"
+        "講師①：" + base_data.get("instructor1", "") + "\n"
+        "講師②：" + base_data.get("instructor2", "") + "\n\n"
+        "【ターゲット設定の条件】\n"
+        "・このサービス（Claude Code × 7日間ブートキャンプ）に最も響く人物像にすること\n"
+        "・年齢・職業・具体的な悩みを必ず明記すること\n"
+        "・3パターンはそれぞれ異なる属性・職種・課題感を持つこと\n"
+        "・現在のターゲット「" + base_data.get("target", "") + "」も参考にしつつ、"
+        "より解像度の高い3パターンを提案すること\n\n"
+        "【厳守事項】\n"
+        "・捏造情報・根拠のない統計・架空の実績は使わないこと\n"
+        "・「必ず稼げる」「確実に収入が上がる」などの断定的な収入保証表現は使わないこと\n"
+        "・可能性の表現（〜を目指せる・〜につながりやすい）にすること"
     )
 
     response = client.messages.create(
