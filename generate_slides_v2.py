@@ -12,6 +12,22 @@ load_dotenv(os.path.expanduser("~/Desktop/.env"), override=True)
 CLAUDE_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GAMMA_API_KEY = os.environ.get("GAMMA_API_KEY", "")
 GAMMA_BASE = "https://public-api.gamma.app/v1.0"
+RETRY_MAX = 3
+RETRY_INTERVAL = 5
+
+
+def retry(func, label):
+    for attempt in range(1, RETRY_MAX + 1):
+        try:
+            return func()
+        except Exception as e:
+            if attempt == RETRY_MAX:
+                print("")
+                print("[" + label + "] 失敗（" + str(RETRY_MAX) + "回試行）: " + str(e))
+                sys.exit(1)
+            print("[" + label + "] エラー（" + str(attempt) + "/" + str(RETRY_MAX) + "回目）: " + str(e))
+            print("  " + str(RETRY_INTERVAL) + "秒後にリトライします...")
+            time.sleep(RETRY_INTERVAL)
 
 
 def load_input(path):
@@ -71,19 +87,20 @@ def generate_slide_content(data):
         "例：[{\"title\": \"タイトル\", \"body\": \"・行1\\n・行2\\n・行3\"}]"
     )
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4000,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    content = message.content[0].text
-    start = content.find('[')
-    end = content.rfind(']') + 1
-    if start == -1 or end == 0:
-        print("エラー: Claude のレスポンスから JSON を取得できませんでした。")
-        print(content)
-        sys.exit(1)
-    return json.loads(content[start:end])
+    def call_claude():
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = message.content[0].text
+        start = content.find('[')
+        end = content.rfind(']') + 1
+        if start == -1 or end == 0:
+            raise ValueError("レスポンスから JSON を取得できませんでした。内容: " + content[:200])
+        return json.loads(content[start:end])
+
+    return retry(call_claude, "Claude API")
 
 
 def start_gamma_generation(slides, data):
@@ -91,26 +108,28 @@ def start_gamma_generation(slides, data):
     for s in slides:
         text += "## " + s['title'] + "\n" + s['body'] + "\n\n"
 
-    response = requests.post(
-        GAMMA_BASE + "/generations",
-        headers={"Content-Type": "application/json", "X-API-KEY": GAMMA_API_KEY},
-        json={
-            "inputText": text,
-            "textMode": "preserve",
-            "format": "presentation",
-            "numCards": data['slides_count'],
-            "textOptions": {"language": "ja"},
-            "cardOptions": {"dimensions": "16x9"},
-            "themeId": "canaveral"
-        }
-    )
-    response.raise_for_status()
-    result = response.json()
-    generation_id = result.get("generationId") or result.get("id")
-    if not generation_id:
-        print("エラー: generationId が取得できませんでした。レスポンス: " + str(result))
-        sys.exit(1)
-    return generation_id
+    def call_gamma():
+        response = requests.post(
+            GAMMA_BASE + "/generations",
+            headers={"Content-Type": "application/json", "X-API-KEY": GAMMA_API_KEY},
+            json={
+                "inputText": text,
+                "textMode": "preserve",
+                "format": "presentation",
+                "numCards": data['slides_count'],
+                "textOptions": {"language": "ja"},
+                "cardOptions": {"dimensions": "16x9"},
+                "themeId": "canaveral"
+            }
+        )
+        response.raise_for_status()
+        result = response.json()
+        generation_id = result.get("generationId") or result.get("id")
+        if not generation_id:
+            raise ValueError("generationId が取得できませんでした。レスポンス: " + str(result))
+        return generation_id
+
+    return retry(call_gamma, "GAMMA API")
 
 
 def poll_gamma(generation_id, interval=5, timeout=300):
