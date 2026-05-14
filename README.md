@@ -173,6 +173,55 @@ for t in r.json()['data']: print(t['id'], '-', t['name'])
 
 ---
 
+## リトライ処理
+
+Claude API・GAMMA API のリクエスト失敗時に自動でリトライする。
+
+| 設定 | 値 |
+|------|---|
+| 最大リトライ回数 | 3回 |
+| リトライ間隔 | 5秒 |
+
+失敗時は以下のように表示される。
+
+```
+[Claude API] エラー（1/3回目）: <エラー内容>
+  5秒後にリトライします...
+[Claude API] エラー（2/3回目）: <エラー内容>
+  5秒後にリトライします...
+[Claude API] 失敗（3回試行）: <エラー内容>
+```
+
+リトライ回数・間隔を変更したい場合は `generate_slides_v2.py` 冒頭の定数を編集する。
+
+```python
+RETRY_MAX = 3       # 最大リトライ回数
+RETRY_INTERVAL = 5  # リトライ間隔（秒）
+```
+
+---
+
+## 生成ログ
+
+実行のたびに `~/Desktop/logs.json` に自動で追記される。
+
+```json
+[
+  {
+    "datetime": "2026-05-14 16:40:16",
+    "service_name": "本質のClaude Code 完全攻略 7dayブートキャンプ",
+    "target": "AIに興味があるが、実用化できていないビジネスパーソン",
+    "concept": "信頼性・安心感・実績",
+    "slides_count": 13,
+    "url": "https://gamma.app/docs/xxxxxxxxxx"
+  }
+]
+```
+
+`logs.json` は `.gitignore` で除外済みのためGitには保存されない。
+
+---
+
 ## 注意事項
 
 - `.env` は `.gitignore` で除外済み。APIキーをコミットしないこと
